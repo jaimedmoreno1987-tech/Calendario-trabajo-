@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Bitácora</title>
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#2F6F62" />
+<link rel="icon" href="icon-192.png" />
+<link rel="apple-touch-icon" href="icon-192.png" />
+<style>
+  :root {
+    --paper: #EAE3D2;
+    --paperCard: #F4EFE2;
+    --ink: #2A2622;
+    --inkMuted: #7A7160;
+    --teal: #2F6F62;
+    --tealDark: #204F45;
+    --rust: #B23A2E;
+    --line: #C9BFA4;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    min-height: 100vh;
+    background: var(--paper);
+    background-image: repeating-linear-gradient(180deg, transparent, transparent 27px, #C9BFA455 28px);
+    font-family: system-ui, -apple-system, sans-serif;
+    color: var(--ink);
+    padding: 24px 14px 48px;
+  }
+  #app { width: 100%; max-width: 480px; margin: 0 auto; }
+  .eyebrow { font-family: monospace; font-size: 12px; letter-spacing: 0.18em; color: var(--teal); font-weight: 700; margin-bottom: 4px; }
+  h1 { font-family: monospace; font-size: 24px; font-weight: 700; margin: 0 0 14px; }
+  .view-toggle { display: flex; gap: 6px; margin-bottom: 16px; background: var(--paperCard); border: 1px solid var(--line); border-radius: 10px; padding: 4px; }
+  .toggle-btn { flex: 1; background: transparent; border: none; border-radius: 7px; padding: 9px 6px; font-size: 13px; font-weight: 600; color: var(--inkMuted); cursor: pointer; }
+  .toggle-btn.active { background: var(--teal); color: #fff; }
+  .date-nav, .week-nav { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
+  .nav-btn { background: transparent; border: 1.5px solid var(--line); border-radius: 8px; width: 40px; height: 40px; font-size: 20px; color: var(--ink); cursor: pointer; flex-shrink: 0; }
+  .date-block { flex: 1; text-align: center; }
+  .date-human { font-family: monospace; font-size: 15px; font-weight: 600; text-transform: capitalize; display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .today-stamp { display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; color: var(--rust); border: 2px solid var(--rust); border-radius: 4px; padding: 1px 5px; transform: rotate(-4deg); }
+  .date-input { margin-top: 4px; font-size: 12px; color: var(--inkMuted); background: transparent; border: none; text-align: center; }
+  .today-link { display: block; margin: 0 auto 14px; background: transparent; border: none; color: var(--teal); font-size: 13px; font-weight: 600; text-decoration: underline; cursor: pointer; }
+  .card { background: var(--paperCard); border: 1px solid var(--line); border-radius: 10px; padding: 6px 4px; margin-bottom: 16px; min-height: 80px; }
+  .empty-state { padding: 28px 16px; text-align: center; color: var(--inkMuted); font-size: 14px; line-height: 1.5; }
+  ul.list { list-style: none; margin: 0; padding: 0; }
+  .entry-row { display: flex; align-items: center; gap: 8px; padding: 12px 10px; border-bottom: 1px dashed var(--line); }
+  .time-badge { font-family: monospace; font-size: 13px; font-weight: 700; color: #fff; background: var(--teal); border-radius: 6px; padding: 4px 8px; flex-shrink: 0; min-width: 56px; text-align: center; }
+  .cat-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; display: inline-block; }
+  .activity-text { flex: 1; font-size: 15px; word-break: break-word; }
+  .row-actions { display: flex; gap: 2px; flex-shrink: 0; }
+  .icon-btn { background: transparent; border: none; font-size: 15px; color: var(--inkMuted); cursor: pointer; width: 30px; height: 30px; border-radius: 6px; }
+  .edit-form { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+  .edit-top-row { display: flex; gap: 8px; }
+  input[type=time], input[type=date], input[type=text], select {
+    font-family: inherit; font-size: 14px; padding: 8px; border: 1px solid var(--line); border-radius: 6px; background: #fff;
+  }
+  .edit-actions { display: flex; gap: 8px; }
+  .save-btn { background: var(--teal); color: #fff; border: none; border-radius: 6px; padding: 6px 12px; font-size: 13px; font-weight: 600; cursor: pointer; }
+  .cancel-btn { background: transparent; color: var(--inkMuted); border: 1px solid var(--line); border-radius: 6px; padding: 6px 12px; font-size: 13px; cursor: pointer; }
+  .add-form { background: var(--paperCard); border: 1px solid var(--line); border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+  .add-form-row { display: flex; gap: 8px; }
+  .time-input { width: 118px; flex-shrink: 0; }
+  .category-select { flex: 1; }
+  .activity-input { width: 100%; }
+  .add-btn { background: var(--teal); color: #fff; border: none; border-radius: 8px; padding: 12px; font-size: 14px; font-weight: 700; cursor: pointer; width: 100%; }
+  .error { margin-top: 10px; color: var(--rust); font-size: 13px; text-align: center; }
+  .footnote { margin-top: 16px; text-align: center; font-size: 12px; color: var(--inkMuted); }
+  .week-label, .month-label { flex: 1; text-align: center; font-family: monospace; font-size: 13px; font-weight: 600; text-transform: capitalize; }
+  .week-day-row { width: 100%; display: flex; align-items: center; gap: 10px; padding: 12px 10px; background: transparent; border: none; border-bottom: 1px dashed var(--line); cursor: pointer; text-align: left; font-family: inherit; color: var(--ink); }
+  .week-day-row.today { background: rgba(47,111,98,0.08); }
+  .week-day-label { font-family: monospace; font-size: 13px; font-weight: 700; text-transform: capitalize; min-width: 52px; flex-shrink: 0; }
+  .week-day-dots { flex: 1; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .week-day-chip { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--inkMuted); }
+  .week-day-total { font-family: monospace; font-size: 13px; font-weight: 700; flex-shrink: 0; }
+  .month-dow-row { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 4px; }
+  .month-dow { text-align: center; font-family: monospace; font-size: 11px; font-weight: 700; color: var(--inkMuted); text-transform: uppercase; padding: 4px 0; }
+  .month-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 14px; }
+  .month-blank { min-height: 52px; }
+  .month-cell { min-height: 52px; background: var(--paperCard); border: 1px solid var(--line); border-radius: 7px; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 6px 2px; font-family: inherit; color: var(--ink); }
+  .month-cell.today { border-color: var(--teal); border-width: 2px; background: rgba(47,111,98,0.08); }
+  .month-cell-num { font-family: monospace; font-size: 13px; font-weight: 600; }
+  .month-cell-dots { display: flex; gap: 2px; min-height: 6px; }
+  .month-dot { width: 5px; height: 5px; border-radius: 50%; display: inline-block; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+"use strict";
+
+var PALETTE_TEAL = "#2F6F62";
+var CATEGORIES = [
+  { key: "trabajo", label: "Trabajo", color: "#2F6F62" },
+  { key: "personal", label: "Personal", color: "#B23A2E" },
+  { key: "social", label: "Social", color: "#9B6A2F" },
+  { key: "salud", label: "Salud", color: "#3E6396" },
+  { key: "otro", label: "Otro", color: "#7A7160" }
+];
+var MESES = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+var DIAS_CORTOS = ["lun","mar","mié","jue","vie","sáb","dom"];
+var DIAS_LARGOS = ["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
+var MESES_CORTOS = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+var STORAGE_PREFIX = "bitacora:";
+
+function catInfo(key) {
+  for (var i = 0; i < CATEGORIES.length; i++) if (CATEGORIES[i].key === key) return CATEGORIES[i];
+  return CATEGORIES[CATEGORIES.length - 1];
+}
+
+function todayStr() {
+  var d = new Date();
+  var tz = d.getTimezoneOffset() * 60000;
+  return new Date(d - tz).toISOString().slice(0, 10);
+}
+
+function pad2(n) { return String(n).padStart(2, "0"); }
+
+function parseDate(dateStr) {
+  var parts = dateStr.split("-").map(Number);
+  return new Date(parts[0], parts[1] - 1, parts[2]);
+}
+
+function toDateStr(dt) {
+  return dt.getFullYear() + "-" + pad2(dt.getMonth() + 1) + "-" + pad2(dt.getDate());
+}
+
+function formatHumanDate(dateStr) {
+  var dt = parseDate(dateStr);
+  return DIAS_LARGOS[dt.getDay()] + " " + dt.getDate() + " de " + MESES_CORTOS[dt.getMonth()];
+}
+
+function shortDayLabel(dateStr) {
+  var dt = parseDate(dateStr);
+  var diasCorto = ["dom","lun","mar","mié","jue","vie","sáb"];
+  return diasCorto[dt.getDay()] + " " + dt.getDate();
+}
+
+function addDays(dateStr, delta) {
+  var dt = parseDate(dateStr);
+  dt.setDate(dt.getDate() + delta);
+  return toDateStr(dt);
+}
+
+function addMonths(dateStr, delta) {
+  var dt = parseDate(dateStr);
+  dt.setDate(1);
+  dt.setMonth(dt.getMonth() + delta);
+  return toDateStr(dt);
+}
+
+function startOfWeek(dateStr) {
+  var dt = parseDate(dateStr);
+  var dow = dt.getDay();
+  var diff = dow === 0 ? -6 : 1 - dow;
+  dt.setDate(dt.getDate() + diff);
+  return toDateStr(dt);
+}
+
+function weekDates(dateStr) {
+  var monday = startOfWeek(dateStr);
+  var out = [];
+  for (var i = 0; i < 7; i++) out.push(addDays(monday, i));
+  return out;
+}
+
+function monthKeyOf(dateStr) { return dateStr.slice(0, 7); }
+
+function monthGrid(dateStr) {
+  var parts = dateStr.split("-").map(Number);
+  var y = parts[0], m = parts[1];
+  var first = new Date(y, m - 1, 1);
+  var lastDayNum = new Date(y, m, 0).getDate();
+  var firstDow = first.getDay();
+  var leadBlanks = firstDow === 0 ? 6 : firstDow - 1;
+  var cells = [];
+  for (var i = 0; i < leadBlanks; i++) cells.push(null);
+  for (var day = 1; day <= lastDayNum; day++) cells.push(y + "-" + pad2(m) + "-" + pad2(day));
+  while (cells.length % 7 !== 0) cells.push(null);
+  return cells;
+}
+
+function sortEntries(list) {
+  return list.slice().sort(function (a, b) { return a.time < b.time ? -1 : a.time > b.time ? 1 : 0; });
+}
+
+function storageGet(key) {
+  try {
+    var raw = window.localStorage.getItem(STORAGE_PREFIX + key);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) { return []; }
+}
+
+function storageSet(key, value) {
+  try {
+    window.localStorage.setItem(STORAGE_PREFIX + key, JSON.stringify(value));
+    return true;
+  } catch (e) { return false; }
+}
+
+function storageListMonthKeys(yearMonth) {
+  var keys = [];
+  for (var i = 0; i < window.localStorage.length; i++) {
+    var k = window.localStorage.key(i);
+    if (k && k.indexOf(STORAGE_PREFIX + "day:" + yearMonth + "-") === 0) keys.push(k.slice(STORAGE_PREFIX.length));
+  }
+  return keys;
+}
+
+// ---- estado ----
+var state = {
+  view: "day",
+  selectedDate: todayStr(),
+  followingToday: true,
+  editingId: null,
+  editTime: "",
+  editActivity: "",
+  editCategory: "otro",
+  errorMsg: ""
+};
+
+function el(tag, attrs, children) {
+  var node = document.createElement(tag);
+  attrs = attrs || {};
+  for (var k in attrs) {
+    if (k === "class") node.className = attrs[k];
+    else if (k === "text") node.textContent = attrs[k];
+    else if (k.indexOf("on") === 0 && typeof attrs[k] === "function") node.addEventListener(k.slice(2), attrs[k]);
+    else node.setAttribute(k, attrs[k]);
+  }
+  (children || []).forEach(function (c) { if (c) node.appendChild(c); });
+  return node;
+}
+
+function setState(patch) {
+  Object.assign(state, patch);
+  render();
+}
+
+function goToDay(date) {
+  state.followingToday = false;
+  state.selectedDate = date;
+  state.view = "day";
+  render();
+}
+
+function goToToday() {
+  state.followingToday = true;
+  state.selectedDate = todayStr();
+  render();
+}
+
+function manualDate(newDate) {
+  state.followingToday = false;
+  state.selectedDate = newDate;
+  render();
+}
+
+// ---- render por vista ----
+function renderToggle(container) {
+  var wrap = el("div", { class: "view-toggle" });
+  [["day","Día"],["week","Semana"],["month","Mes"]].forEach(function (pair) {
+    var btn = el("button", {
+      class: "toggle-btn" + (state.view === pair[0] ? " active" : ""),
+      text: pair[1],
+      onclick: function () { setState({ view: pair[0] }); }
+    });
+    wrap.appendChild(btn);
+  });
+  container.appendChild(wrap);
+}
+
+function renderDayView(container) {
+  var entries = sortEntries(storageGet("day:" + state.selectedDate));
+  var isToday = state.selectedDate === todayStr();
+
+  var nav = el("div", { class: "date-nav" }, [
+    el("button", { class: "nav-btn", text: "‹", onclick: function () { manualDate(addDays(state.selectedDate, -1)); } }),
+    el("div", { class: "date-block" }, [
+      (function () {
+        var human = el("div", { class: "date-human" });
+        human.appendChild(document.createTextNode(formatHumanDate(state.selectedDate)));
+        if (isToday) human.appendChild(el("span", { class: "today-stamp", text: "HOY" }));
+        return human;
+      })(),
+      el("input", { type: "date", value: state.selectedDate, class: "date-input", onchange: function (e) { manualDate(e.target.value); } })
+    ]),
+    el("button", { class: "nav-btn", text: "›", onclick: function () { manualDate(addDays(state.selectedDate, 1)); } })
+  ]);
+  container.appendChild(nav);
+
+  if (!isToday) {
+    container.appendChild(el("button", { class: "today-link", text: "Volver a hoy", onclick: goToToday }));
+  }
+
+  var card = el("div", { class: "card" });
+  if (entries.length === 0) {
+    card.appendChild(el("div", { class: "empty-state", text: "Todavía no cargaste nada para este día. Agregá el primer horario abajo." }));
+  } else {
+    var ul = el("ul", { class: "list" });
+    entries.forEach(function (entry) {
+      var li = el("li", { class: "entry-row" });
+      if (state.editingId === entry.id) {
+        var timeIn = el("input", { type: "time", value: state.editTime, oninput: function (e) { state.editTime = e.target.value; } });
+        var catSel = el("select", { oninput: function (e) { state.editCategory = e.target.value; } });
+        CATEGORIES.forEach(function (c) {
+          var opt = el("option", { value: c.key, text: c.label });
+          if (c.key === state.editCategory) opt.selected = true;
+          catSel.appendChild(opt);
+        });
+        var actIn = el("input", { type: "text", value: state.editActivity, oninput: function (e) { state.editActivity = e.target.value; } });
+        var editForm = el("div", { class: "edit-form" }, [
+          el("div", { class: "edit-top-row" }, [timeIn, catSel]),
+          actIn,
+          el("div", { class: "edit-actions" }, [
+            el("button", { class: "save-btn", text: "Guardar", onclick: function () { saveEdit(entry.id); } }),
+            el("button", { class: "cancel-btn", text: "Cancelar", onclick: function () { setState({ editingId: null }); } })
+          ])
+        ]);
+        li.appendChild(editForm);
+      } else {
+        var cat = catInfo(entry.category);
+        li.appendChild(el("div", { class: "time-badge", text: entry.time }));
+        li.appendChild(el("span", { class: "cat-dot", style: "background:" + cat.color, title: cat.label }));
+        li.appendChild(el("div", { class: "activity-text", text: entry.activity }));
+        li.appendChild(el("div", { class: "row-actions" }, [
+          el("button", { class: "icon-btn", text: "✎", onclick: function () { startEdit(entry); } }),
+          el("button", { class: "icon-btn", text: "✕", onclick: function () { deleteEntry(entry.id); } })
+        ]));
+      }
+      ul.appendChild(li);
+    });
+    card.appendChild(ul);
+  }
+  container.appendChild(card);
+
+  var timeInput = el("input", { type: "time", class: "time-input", required: "required" });
+  var catSelect = el("select", { class: "category-select" });
+  CATEGORIES.forEach(function (c) { catSelect.appendChild(el("option", { value: c.key, text: c.label })); });
+  var actInput = el("input", { type: "text", class: "activity-input", placeholder: "¿Qué actividad?", required: "required" });
+
+  var form = el("form", { class: "add-form", onsubmit: function (e) {
+    e.preventDefault();
+    if (!timeInput.value || !actInput.value.trim()) return;
+    var entry = { id: Date.now() + "-" + Math.random().toString(36).slice(2, 7), time: timeInput.value, activity: actInput.value.trim(), category: catSelect.value };
+    var next = sortEntries(entries.concat([entry]));
+    var ok = storageSet("day:" + state.selectedDate, next);
+    setState({ errorMsg: ok ? "" : "No se pudo guardar. Probá de nuevo." });
+  }}, [
+    el("div", { class: "add-form-row" }, [timeInput, catSelect]),
+    actInput,
+    el("button", { type: "submit", class: "add-btn", text: "+ Agregar actividad" })
+  ]);
+  container.appendChild(form);
+
+  if (state.errorMsg) container.appendChild(el("div", { class: "error", text: state.errorMsg }));
+  container.appendChild(el("p", { class: "footnote", text: "Se guarda solo en este celular, por día." }));
+}
+
+function startEdit(entry) {
+  state.editingId = entry.id;
+  state.editTime = entry.time;
+  state.editActivity = entry.activity;
+  state.editCategory = entry.category || "otro";
+  render();
+}
+
+function saveEdit(id) {
+  var entries = sortEntries(storageGet("day:" + state.selectedDate));
+  if (!state.editTime || !state.editActivity.trim()) return;
+  var next = sortEntries(entries.map(function (en) {
+    return en.id === id ? Object.assign({}, en, { time: state.editTime, activity: state.editActivity.trim(), category: state.editCategory }) : en;
+  }));
+  storageSet("day:" + state.selectedDate, next);
+  setState({ editingId: null });
+}
+
+function deleteEntry(id) {
+  var entries = storageGet("day:" + state.selectedDate);
+  var next = entries.filter(function (en) { return en.id !== id; });
+  storageSet("day:" + state.selectedDate, next);
+  render();
+}
+
+function renderWeekView(container) {
+  var nav = el("div", { class: "week-nav" }, [
+    el("button", { class: "nav-btn", text: "‹", onclick: function () { manualDate(addDays(state.selectedDate, -7)); } }),
+    el("div", { class: "week-label", text: "Semana del " + shortDayLabel(startOfWeek(state.selectedDate)) + " al " + shortDayLabel(addDays(startOfWeek(state.selectedDate), 6)) }),
+    el("button", { class: "nav-btn", text: "›", onclick: function () { manualDate(addDays(state.selectedDate, 7)); } })
+  ]);
+  container.appendChild(nav);
+
+  if (weekDates(state.selectedDate).indexOf(todayStr()) === -1) {
+    container.appendChild(el("button", { class: "today-link", text: "Volver a esta semana", onclick: goToToday }));
+  }
+
+  var card = el("div", { class: "card" });
+  weekDates(state.selectedDate).forEach(function (date) {
+    var dayEntries = sortEntries(storageGet("day:" + date));
+    var counts = {};
+    dayEntries.forEach(function (en) { var k = en.category || "otro"; counts[k] = (counts[k] || 0) + 1; });
+    var dotsWrap = el("div", { class: "week-day-dots" });
+    var hasAny = Object.keys(counts).length > 0;
+    if (!hasAny) {
+      dotsWrap.appendChild(el("span", { class: "week-day-chip", text: "sin actividades" }));
+    } else {
+      CATEGORIES.forEach(function (c) {
+        if (counts[c.key]) {
+          dotsWrap.appendChild(el("span", { class: "week-day-chip" }, [
+            el("span", { class: "cat-dot", style: "background:" + c.color }),
+            document.createTextNode(" " + counts[c.key])
+          ]));
+        }
+      });
+    }
+    var row = el("button", { class: "week-day-row" + (date === todayStr() ? " today" : ""), onclick: function () { goToDay(date); } }, [
+      el("div", { class: "week-day-label", text: shortDayLabel(date) }),
+      dotsWrap,
+      el("div", { class: "week-day-total", text: String(dayEntries.length) })
+    ]);
+    card.appendChild(row);
+  });
+  container.appendChild(card);
+  container.appendChild(el("p", { class: "footnote", text: "Tocá un día para ver el detalle y editarlo." }));
+}
+
+function renderMonthView(container) {
+  var parts = state.selectedDate.split("-").map(Number);
+  var gy = parts[0], gm = parts[1];
+
+  var nav = el("div", { class: "week-nav" }, [
+    el("button", { class: "nav-btn", text: "‹", onclick: function () { manualDate(addMonths(state.selectedDate, -1)); } }),
+    el("div", { class: "month-label", text: MESES[gm - 1] + " " + gy }),
+    el("button", { class: "nav-btn", text: "›", onclick: function () { manualDate(addMonths(state.selectedDate, 1)); } })
+  ]);
+  container.appendChild(nav);
+
+  if (monthKeyOf(state.selectedDate) !== monthKeyOf(todayStr())) {
+    container.appendChild(el("button", { class: "today-link", text: "Volver a este mes", onclick: goToToday }));
+  }
+
+  var dowRow = el("div", { class: "month-dow-row" });
+  DIAS_CORTOS.forEach(function (d) { dowRow.appendChild(el("div", { class: "month-dow", text: d })); });
+  container.appendChild(dowRow);
+
+  var monthData = {};
+  storageListMonthKeys(monthKeyOf(state.selectedDate)).forEach(function (k) {
+    var date = k.replace("day:", "");
+    var val = storageGet(k);
+    if (val && val.length) monthData[date] = val;
+  });
+
+  var grid = el("div", { class: "month-grid" });
+  monthGrid(state.selectedDate).forEach(function (date) {
+    if (!date) { grid.appendChild(el("div", { class: "month-blank" })); return; }
+    var dayEntries = monthData[date] || [];
+    var counts = {};
+    dayEntries.forEach(function (en) { var k = en.category || "otro"; counts[k] = (counts[k] || 0) + 1; });
+    var dayNum = Number(date.slice(-2));
+    var dotsWrap = el("span", { class: "month-cell-dots" });
+    CATEGORIES.forEach(function (c) { if (counts[c.key]) dotsWrap.appendChild(el("span", { class: "month-dot", style: "background:" + c.color })); });
+    var cell = el("button", { class: "month-cell" + (date === todayStr() ? " today" : ""), onclick: function () { goToDay(date); } }, [
+      el("span", { class: "month-cell-num", text: String(dayNum) }),
+      dotsWrap
+    ]);
+    grid.appendChild(cell);
+  });
+  container.appendChild(grid);
+  container.appendChild(el("p", { class: "footnote", text: "Cuando termina el mes, la bitácora pasa sola al siguiente. Tocá un día para ver o agregar actividades." }));
+}
+
+function render() {
+  var app = document.getElementById("app");
+  app.innerHTML = "";
+  app.appendChild(el("div", { class: "eyebrow", text: "BITÁCORA" }));
+  app.appendChild(el("h1", { text: "Actividades del día" }));
+  renderToggle(app);
+  if (state.view === "day") renderDayView(app);
+  else if (state.view === "week") renderWeekView(app);
+  else renderMonthView(app);
+}
+
+setInterval(function () {
+  var nowStr = todayStr();
+  if (state.followingToday && state.selectedDate !== nowStr) {
+    state.selectedDate = nowStr;
+    render();
+  }
+}, 60000);
+
+render();
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", function () {
+    navigator.serviceWorker.register("sw.js").catch(function () {});
+  });
+}
+</script>
+</body>
+</html>
